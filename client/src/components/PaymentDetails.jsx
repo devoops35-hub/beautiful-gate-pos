@@ -12,14 +12,10 @@ const PaymentDetails = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Cash');
   const [customerPhone, setCustomerPhone] = useState('+233');
-  
-  // Fixed tax rate - no longer fetched from admin settings
-  const TAX_RATE = 0.075; // 7.5% tax rate
 
   const subTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
-  const tax = subTotal * TAX_RATE;
   const totalItems = cart.reduce((acc, item) => acc + item.qty, 0);
-  const total = subTotal + tax;
+  const total = subTotal;
 
   const handlePayment = () => {
     if (cart.length === 0) return;
@@ -310,10 +306,6 @@ const PaymentDetails = () => {
                 <span>Subtotal:</span>
                 <span>₵${subTotal.toFixed(2)}</span>
               </div>
-              <div class="summary-row">
-                <span>Tax (${(TAX_RATE * 100).toFixed(1)}%):</span>
-                <span>₵${tax.toFixed(2)}</span>
-              </div>
               <div class="summary-row total">
                 <span>TOTAL:</span>
                 <span>₵${total.toFixed(2)}</span>
@@ -364,10 +356,6 @@ const PaymentDetails = () => {
         <div className="flex justify-between mb-2">
           <span>Sub Total:</span>
           <span>₵{subTotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between mb-2">
-          <span>Tax ({(TAX_RATE * 100).toFixed(1)}%):</span>
-          <span className="text-red-500">₵{tax.toFixed(2)}</span>
         </div>
         <div className="flex justify-between mb-4">
           <span>Total Items:</span>
