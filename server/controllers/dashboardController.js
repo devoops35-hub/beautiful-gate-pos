@@ -1,5 +1,52 @@
 const { dbAll, dbGet, dbRun } = require('../config/supabase');
 
+// Helper function to calculate date ranges
+const getDateRanges = () => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(monthStart);
+  lastMonthEnd.setDate(lastMonthEnd.getDate() - 1);
+  
+  return {
+    today: today.toISOString().split('T')[0],
+    yesterday: yesterday.toISOString().split('T')[0],
+    weekAgo: weekAgo.toISOString().split('T')[0],
+    monthStart: monthStart.toISOString().split('T')[0],
+    lastMonthStart: lastMonthStart.toISOString().split('T')[0],
+    lastMonthEnd: lastMonthEnd.toISOString().split('T')[0],
+  };
+};
+
+// Helper function to filter sales by date
+const filterSalesByDateRange = (sales, startDate, endDate) => {
+  return sales.filter(sale => {
+    let dateStr;
+    try {
+      const dateObj = new Date(sale.created_at);
+      dateStr = dateObj.toISOString().split('T')[0];
+    } catch (e) {
+      dateStr = sale.created_at ? sale.created_at.split(' ')[0] : null;
+    }
+    return dateStr && dateStr >= startDate && dateStr <= endDate;
+  });
+};
+
+// Helper function to calculate stats for a period
+const calculatePeriodStats = (salesList) => {
+  return {
+    count: salesList.length,
+    revenue: salesList.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0)
+  };
+};
+
 // @desc    Get dashboard statistics
 // @route   GET /api/dashboard/stats
 // @access  Public
@@ -14,7 +61,46 @@ exports.getDashboardStats = async (req, res) => {
     const totalSales = sales?.length || 0;
     const totalRevenue = sales ? sales.reduce((sum, sale) => sum + (parseFloat(sale.total) || 0), 0) : 0;
     
-    // 3. Get recent sales (last 5) with their products
+    // 3. Calculate daily, weekly, and monthly stats
+    const dateRanges = getDateRanges();
+    
+    // Daily sales (today)
+    const todaysSales = filterSalesByDateRange(sales, dateRanges.today, dateRanges.today);
+    const dailyStats = calculatePeriodStats(todaysSales);
+    
+    // Weekly sales (last 7 days including today)
+    const weekSales = filterSalesByDateRange(sales, dateRanges.weekAgo, dateRanges.today);
+    const weeklyStats = calculatePeriodStats(weekSales);
+    
+    // Monthly sales (current month)
+    const monthSales = filterSalesByDateRange(sales, dateRanges.monthStart, dateRanges.today);
+    const monthlyStats = calculatePeriodStats(monthSales);
+    
+    // Last month sales (for comparison)
+    const lastMonthSales = filterSalesByDateRange(sales, dateRanges.lastMonthStart, dateRanges.lastMonthEnd);
+    const lastMonthStats = calculatePeriodStats(lastMonthSales);
+    
+    // Last 7 days breakdown
+    const last7DaysBreakdown = {};
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const daySales = filterSalesByDateRange(sales, dateStr, dateStr);
+      last7DaysBreakdown[dateStr] = calculatePeriodStats(daySales);
+    }
+    
+    // Last 30 days breakdown
+    const last30DaysBreakdown = {};
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const daySales = filterSalesByDateRange(sales, dateStr, dateStr);
+      last30DaysBreakdown[dateStr] = calculatePeriodStats(daySales);
+    }
+    
+    // 4. Get recent sales (last 5) with their products
     const recentSales = await dbAll(
       'SELECT * FROM sales ORDER BY created_at DESC LIMIT 5'
     ) || [];
@@ -39,7 +125,7 @@ exports.getDashboardStats = async (req, res) => {
       }));
     }
     
-    // 4. Get top selling products - use fetch-then-compute for Supabase compatibility
+    // 5. Get top selling products - use fetch-then-compute for Supabase compatibility
     const allSaleProducts = await dbAll(
       'SELECT sp.product_id, sp.quantity FROM sale_products sp'
     ) || [];
@@ -70,7 +156,7 @@ exports.getDashboardStats = async (req, res) => {
       .sort((a, b) => b.sales_count - a.sales_count)
       .slice(0, 5);
     
-    // 5. Group sales data by date for charting
+    // 6. Group sales data by date for charting
     const salesByDate = {};
     const paymentMethods = {};
     sales.forEach(sale => {
@@ -112,7 +198,7 @@ exports.getDashboardStats = async (req, res) => {
         count
       }));
     
-    // 6. Get unique customer count
+    // 7. Get unique customer count
     const customerEmails = sales
       .map(sale => sale.customer_email)
       .filter(email => email && typeof email === 'string');
@@ -134,7 +220,34 @@ exports.getDashboardStats = async (req, res) => {
           createdAt: sale.created_at,
           products: sale.products || []
         })),
-        topProducts
+        topProducts,
+        // New daily/weekly/monthly stats
+        dailyStats: {
+          ...dailyStats,
+          label: 'Today'
+        },
+        weeklyStats: {
+          ...weeklyStats,
+          label: 'This Week (Last 7 Days)'
+        },
+        monthlyStats: {
+          ...monthlyStats,
+          label: 'This Month'
+        },
+        lastMonthStats: {
+          ...lastMonthStats,
+          label: 'Last Month'
+        },
+        last7DaysBreakdown: Object.entries(last7DaysBreakdown)
+          .map(([date, stats]) => ({
+            date,
+            ...stats
+          })),
+        last30DaysBreakdown: Object.entries(last30DaysBreakdown)
+          .map(([date, stats]) => ({
+            date,
+            ...stats
+          }))
       }
     });
   } catch (err) {

@@ -14,6 +14,9 @@ A **production-ready Point of Sale system** for a stationery and printing hub. B
 - **[PHASE_2_QUICK_START.md](PHASE_2_QUICK_START.md)** - Quick start guide
 - **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment
 - **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Docker deployment
+- **[DEPLOY_NOW_CHECKLIST.md](DEPLOY_NOW_CHECKLIST.md)** - Render deployment (FREE)
+- **[READY_TO_DEPLOY.md](READY_TO_DEPLOY.md)** - Deployment overview
+- **[GITHUB_DEPLOYMENT_GUIDE.md](GITHUB_DEPLOYMENT_GUIDE.md)** - GitHub & Render guide
 - **[PHASE_2_IMPROVEMENTS.md](PHASE_2_IMPROVEMENTS.md)** - Phase 2 features
 
 ### 🚀 Quick Start
@@ -23,6 +26,9 @@ cd server && npm install && node scripts/migrate.js && npm run start
 
 # Docker (3 commands)
 docker-compose build && docker-compose up -d
+
+# Render Deploy (Free - 30 minutes)
+See DEPLOY_NOW_CHECKLIST.md for step-by-step guide
 ```
 
 ---
@@ -514,14 +520,47 @@ This project is proprietary software for Beautiful Gate Stationery & Printing Hu
 
 ---
 
+## 🚀 Deployment to Render (Free)
+
+Deploy your Beautiful Gate POS to the cloud for free using Render!
+
+### Quick Deploy (30 minutes)
+1. **Fork/Clone** this repository
+2. **Create Render account** at [render.com](https://render.com)
+3. **Deploy Backend**:
+   - New Web Service
+   - Select this repo
+   - Root Directory: `server`
+   - Build: `npm install`
+   - Start: `npm start`
+   - Add environment variables (see below)
+
+4. **Deploy Frontend**:
+   - New Static Site
+   - Select this repo
+   - Root Directory: `client`
+   - Build: `npm install && npm run build`
+   - Publish: `dist`
+   - Add environment variables (see below)
+
+### Result
+- Frontend: `https://beautiful-gate-web.onrender.com`
+- Backend: `https://beautiful-gate-api.onrender.com`
+
+See [DEPLOY_NOW_CHECKLIST.md](DEPLOY_NOW_CHECKLIST.md) for detailed instructions.
+
+---
+
 ## 🚀 Ready to Deploy?
 
 **YES!** This system is production-ready. Follow these steps:
 
-1. **Staging**: `docker-compose up -d` + UAT testing
-2. **Production**: Follow [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
-3. **Monitor**: Check logs, audit trail, and performance
-4. **Maintain**: Regular backups, updates, and security reviews
+1. **Local Testing**: `npm run dev` (frontend) + `npm start` (backend)
+2. **Docker Testing**: `docker-compose up -d`
+3. **Cloud Deployment**: Follow [DEPLOY_NOW_CHECKLIST.md](DEPLOY_NOW_CHECKLIST.md) for Render
+4. **Production**: Follow [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+5. **Monitor**: Check logs, audit trail, and performance
+6. **Maintain**: Regular backups, updates, and security reviews
 
 **Status**: ✅ **PRODUCTION READY - DEPLOY WITH CONFIDENCE**
 

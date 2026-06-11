@@ -102,10 +102,116 @@ const DashboardPage = () => {
     paymentMethodsChartData: Array.isArray(dashboardData.paymentMethodsChartData) ? dashboardData.paymentMethodsChartData : [],
     recentSales: Array.isArray(dashboardData.recentSales) ? dashboardData.recentSales : [],
     topProducts: Array.isArray(dashboardData.topProducts) ? dashboardData.topProducts : [],
+    last7DaysBreakdown: Array.isArray(dashboardData.last7DaysBreakdown) ? dashboardData.last7DaysBreakdown : [],
+    last30DaysBreakdown: Array.isArray(dashboardData.last30DaysBreakdown) ? dashboardData.last30DaysBreakdown : [],
   };
   
   // Log the data for debugging
   console.log('Dashboard Data:', dashboardData);
+  
+  // Prepare chart data for 7-day breakdown
+  const last7DaysData = {
+    labels: validDashboardData.last7DaysBreakdown.map(item => {
+      const date = new Date(item.date);
+      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }),
+    datasets: [
+      {
+        label: 'Sales Count',
+        data: validDashboardData.last7DaysBreakdown.map(item => item.count),
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgb(54, 162, 235)',
+        borderWidth: 2,
+        borderRadius: 5,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Revenue (₵)',
+        data: validDashboardData.last7DaysBreakdown.map(item => item.revenue),
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        borderColor: 'rgb(255, 99, 132)',
+        borderWidth: 2,
+        borderRadius: 5,
+        yAxisID: 'y1',
+      }
+    ],
+  };
+
+  const last7DaysOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    stacked: false,
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 20,
+        }
+      },
+      title: {
+        display: true,
+        text: 'Last 7 Days Sales Breakdown',
+        font: {
+          size: 16,
+          weight: 'bold',
+        },
+        padding: {
+          top: 10,
+          bottom: 20
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        titleFont: {
+          size: 14
+        },
+        bodyFont: {
+          size: 13
+        },
+        padding: 12,
+        usePointStyle: true,
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+      },
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        grid: {
+          drawTicks: false,
+        },
+        ticks: {
+          callback: function(value) {
+            return value;
+          }
+        }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        grid: {
+          drawOnChartArea: false,
+          drawTicks: false,
+        },
+        ticks: {
+          callback: function(value) {
+            return '₵' + value;
+          }
+        }
+      },
+    },
+  };
   
   // Prepare chart data
   const salesTrendData = {
@@ -361,6 +467,14 @@ const DashboardPage = () => {
     { title: 'Customers', value: validDashboardData.uniqueCustomers, icon: faUsers, color: 'bg-purple-500' },
   ];
 
+  // Ensure period stats exist in data
+  const periodStats = {
+    daily: dashboardData.dailyStats || { count: 0, revenue: 0, label: 'Today' },
+    weekly: dashboardData.weeklyStats || { count: 0, revenue: 0, label: 'This Week (Last 7 Days)' },
+    monthly: dashboardData.monthlyStats || { count: 0, revenue: 0, label: 'This Month' },
+    lastMonth: dashboardData.lastMonthStats || { count: 0, revenue: 0, label: 'Last Month' },
+  };
+
   return (
     <div className="container mx-auto px-4 py-6">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Dashboard</h1>
@@ -380,6 +494,37 @@ const DashboardPage = () => {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Period Stats Grid - Daily, Weekly, Monthly */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Daily Stats */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">TODAY'S SALES</h3>
+          <p className="text-3xl font-bold text-blue-600 mb-2">₵{periodStats.daily.revenue.toFixed(2)}</p>
+          <p className="text-sm text-gray-600">{periodStats.daily.count} {periodStats.daily.count === 1 ? 'sale' : 'sales'}</p>
+        </div>
+
+        {/* Weekly Stats */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">THIS WEEK</h3>
+          <p className="text-3xl font-bold text-green-600 mb-2">₵{periodStats.weekly.revenue.toFixed(2)}</p>
+          <p className="text-sm text-gray-600">{periodStats.weekly.count} {periodStats.weekly.count === 1 ? 'sale' : 'sales'}</p>
+        </div>
+
+        {/* Monthly Stats */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">THIS MONTH</h3>
+          <p className="text-3xl font-bold text-purple-600 mb-2">₵{periodStats.monthly.revenue.toFixed(2)}</p>
+          <p className="text-sm text-gray-600">{periodStats.monthly.count} {periodStats.monthly.count === 1 ? 'sale' : 'sales'}</p>
+        </div>
+
+        {/* Last Month Stats */}
+        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">LAST MONTH</h3>
+          <p className="text-3xl font-bold text-orange-600 mb-2">₵{periodStats.lastMonth.revenue.toFixed(2)}</p>
+          <p className="text-sm text-gray-600">{periodStats.lastMonth.count} {periodStats.lastMonth.count === 1 ? 'sale' : 'sales'}</p>
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -461,6 +606,20 @@ const DashboardPage = () => {
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-gray-500">No product data available for chart</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 7-Day Breakdown Chart */}
+      <div className="bg-white rounded-lg shadow-md p-6 mt-8">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">Last 7 Days Breakdown</h2>
+        <div className="h-80">
+          {validDashboardData.last7DaysBreakdown.length > 0 ? (
+            <Bar data={last7DaysData} options={last7DaysOptions} />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">No data available for 7-day breakdown</p>
             </div>
           )}
         </div>
