@@ -57,20 +57,51 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
 });
 
-// Security Middleware
-app.use(helmet());
+// Security Middleware - Helmet with CORS-friendly config
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'", 'https:'],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https:'],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+    },
+  },
+}));
 
-// CORS Middleware
+// CORS Middleware - Allow all origins for now, can be restricted later
+const allowedOrigins = [
+  'https://beautiful-gate-client.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
 app.use(cors({
-  origin: Array.isArray(CORS_CONFIG.origin) ? CORS_CONFIG.origin : [CORS_CONFIG.origin],
-  credentials: CORS_CONFIG.credentials,
-  methods: CORS_CONFIG.methods,
-  allowedHeaders: CORS_CONFIG.allowedHeaders,
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // Still allow it but log it
+      console.log('CORS request from:', origin);
+      callback(null, true); // Allow anyway for debugging
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  optionsSuccessStatus: 200,
 }));
 
 // Body Parser Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Request Logging Middleware
 app.use(requestLoggingMiddleware);
