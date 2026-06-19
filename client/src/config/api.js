@@ -130,6 +130,15 @@ const api = {
   dashboard: {
     getStats: () => apiClient.get('/api/dashboard/stats'),
   },
+
+  // Companies endpoints
+  companies: {
+    register: (data) => apiClient.post('/api/companies/register', data),
+    getBranding: () => apiClient.get('/api/company/branding'),
+    getDetails: () => apiClient.get('/api/company'),
+    updateBranding: (data) => apiClient.put('/api/company/branding', data),
+    updateDetails: (data) => apiClient.put('/api/company', data),
+  },
 };
 
 export { apiClient, api, API_URL };

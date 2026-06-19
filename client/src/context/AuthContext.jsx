@@ -16,6 +16,10 @@ export const AuthProvider = ({ children }) => {
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
+  const [company, setCompany] = useState(() => {
+    const savedCompany = localStorage.getItem('company');
+    return savedCompany ? JSON.parse(savedCompany) : null;
+  });
 
   useEffect(() => {
     if (token) {
@@ -69,6 +73,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', res.data.accessToken);
       localStorage.setItem('refreshToken', res.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
+      if (res.data.company) {
+        localStorage.setItem('company', JSON.stringify(res.data.company));
+        setCompany(res.data.company);
+      }
       setToken(res.data.accessToken);
       setRefreshToken(res.data.refreshToken);
       setUser(res.data.user);
@@ -122,9 +130,11 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      localStorage.removeItem('company');
       setToken(null);
       setRefreshToken(null);
       setUser(null);
+      setCompany(null);
       delete axios.defaults.headers.common['x-auth-token'];
       delete axios.defaults.headers.common['Authorization'];
       toast.success('You have been logged out');
@@ -155,6 +165,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         loading,
         user,
+        company,
         login,
         register,
         logout,

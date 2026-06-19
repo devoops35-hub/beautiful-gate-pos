@@ -4,13 +4,14 @@ import Sidebar from './components/Sidebar';
 import Sales from './components/Sales';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import RegisterCompanyPage from './pages/RegisterCompanyPage';
 import DashboardPage from './pages/DashboardPage';
 import InventoryPage from './pages/InventoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function AppContent() {
   const location = useLocation();
-  const showSidebar = location.pathname !== '/login' && location.pathname !== '/register';
+  const showSidebar = location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/register-company';
 
   return (
     <div className="App bg-gray-100 min-h-screen flex">
@@ -19,6 +20,7 @@ function AppContent() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register-company" element={<RegisterCompanyPage />} />
           <Route 
             path="/" 
             element={
