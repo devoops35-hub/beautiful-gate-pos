@@ -128,6 +128,25 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/audit', require('./routes/audit'));
 
+// Test endpoint to verify API is working
+app.get('/api/test', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API is working',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Test CORS endpoint
+app.post('/api/test-cors', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'CORS is working',
+    received: req.body,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Root route
 app.get('/', (req, res) => {
   res.status(200).json({
