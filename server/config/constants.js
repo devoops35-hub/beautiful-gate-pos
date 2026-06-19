@@ -1,6 +1,8 @@
 /**
  * Application Constants and Environment Configuration
  * Centralized configuration management for the POS server
+ * 
+ * Force rebuild: 2026-06-19 12:30 UTC
  */
 
 require('dotenv').config();
