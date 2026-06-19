@@ -45,6 +45,7 @@ const LoginPage = () => {
             className="h-20 w-20 mx-auto mb-3"
           />
           <h1 className="text-2xl font-bold text-blue-800">Beautiful Gate</h1>
+          <p className="text-sm text-gray-600 mt-1">POS Management System</p>
         </div>
         <h2 className="text-2xl font-bold text-center flex items-center justify-center">
           <FontAwesomeIcon icon={faSignInAlt} className="mr-2 text-blue-500" />
@@ -104,12 +105,20 @@ const LoginPage = () => {
             </button>
           </div>
         </form>
-        <p className="text-sm text-center text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-blue-500 hover:underline">
-            Register
-          </Link>
-        </p>
+        <div className="space-y-2 pt-4 border-t">
+          <p className="text-sm text-center text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/register" className="font-medium text-blue-500 hover:underline">
+              Register
+            </Link>
+          </p>
+          <p className="text-sm text-center text-gray-600">
+            New company?{' '}
+            <Link to="/register-company" className="font-medium text-green-600 hover:underline">
+              Register your company
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
