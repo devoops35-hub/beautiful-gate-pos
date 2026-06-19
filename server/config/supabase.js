@@ -2,15 +2,20 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 // Initialize Supabase client with REST API
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL || 'https://yxakmdoiivaiyjcdaxny.supabase.co',
-  process.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key',
-  {
-    auth: {
-      persistSession: false,
-    },
-  }
-);
+// Priority: Use environment variables if available, fallback to hardcoded URL
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://yxakmdoiivaiyjcdaxny.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4YWttZG9paXZhaXlqY2RheG55Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcwMzk1MjMsImV4cCI6MTc2ODU3NTUyM30.cPXZ-k3fpOl4eT0NVTNcVQvL6KDU1_v-zOIMLWVHhEU';
+
+console.log('🔍 Supabase Config:', {
+  url: SUPABASE_URL ? '✅ Set' : '❌ Missing',
+  key: SUPABASE_KEY ? '✅ Set' : '❌ Missing',
+});
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: false,
+  },
+});
 
 /**
  * Wrapper for SELECT queries - returns array of rows

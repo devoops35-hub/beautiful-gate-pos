@@ -95,6 +95,7 @@ exports.registerCompany = async (req, res) => {
     );
 
     if (!company) {
+      console.error('❌ Company creation returned null');
       return res.status(500).json({
         success: false,
         message: 'Failed to create company'
