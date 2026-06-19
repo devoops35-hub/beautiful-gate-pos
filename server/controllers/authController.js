@@ -98,8 +98,14 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.validatedData;
 
-    // Find user
-    const user = await dbGet('SELECT * FROM users WHERE email = $1', [email]);
+    // Find user with company info
+    const user = await dbGet(
+      `SELECT u.*, c.id as company_id, c.name as company_name, c.slug as company_slug, c.logo_url, c.primary_color 
+       FROM users u 
+       LEFT JOIN companies c ON u.company_id = c.id 
+       WHERE u.email = $1`,
+      [email]
+    );
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -142,8 +148,21 @@ exports.login = async (req, res) => {
       [user.id]
     ).catch(err => logger.warn('Failed to update lastLoginAt', { userId: user.id, error: err.message }));
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id);
+    // Generate tokens with company info
+    const tokenData = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      companyId: user.company_id,
+      companySlug: user.company_slug
+    };
+    
+    const accessToken = jwt.sign(
+      tokenData,
+      process.env.JWT_SECRET,
+      { expiresIn: JWT.ACCESS_TOKEN_EXPIRY }
+    );
+    
     const refreshToken = generateRefreshToken(user.id);
 
     // Store refresh token
@@ -157,6 +176,7 @@ exports.login = async (req, res) => {
     // Log audit event
     await logAuditEvent(user.id, 'LOGIN', 'user', user.id, {
       email,
+      companyId: user.company_id,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
@@ -164,6 +184,7 @@ exports.login = async (req, res) => {
     logger.info('User logged in', {
       userId: user.id,
       email,
+      companyId: user.company_id,
       timestamp: new Date().toISOString(),
     });
 
@@ -178,6 +199,13 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
       },
+      company: user.company_id ? {
+        id: user.company_id,
+        name: user.company_name,
+        slug: user.company_slug,
+        logo: user.logo_url,
+        primaryColor: user.primary_color
+      } : null,
     });
   } catch (err) {
     logger.logError('Login error', err);

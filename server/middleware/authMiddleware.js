@@ -37,9 +37,25 @@ const authenticate = (req, res, next) => {
     }
 
     // Verify the token
-    const decoded = jwt.verify(token, JWT.SECRET);
-    req.userId = decoded.user.id;
-    req.user = decoded.user;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || JWT.SECRET);
+    
+    // Handle both old format (with nested user object) and new format (flat with company info)
+    if (decoded.user) {
+      // Old format compatibility
+      req.userId = decoded.user.id;
+      req.user = decoded.user;
+    } else {
+      // New format with company info
+      req.userId = decoded.userId;
+      req.user = {
+        id: decoded.userId,
+        email: decoded.email,
+        role: decoded.role,
+        companyId: decoded.companyId,
+        companySlug: decoded.companySlug
+      };
+    }
+    
     next();
   } catch (error) {
     console.warn('Authentication error:', {
