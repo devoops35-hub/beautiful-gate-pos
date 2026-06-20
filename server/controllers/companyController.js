@@ -6,6 +6,11 @@ const bcrypt = require('bcryptjs');
 // @access  Public
 exports.registerCompany = async (req, res) => {
   try {
+    console.log('📝 Company registration started:', {
+      body: req.body,
+      timestamp: new Date().toISOString()
+    });
+
     const {
       companyName,
       slug,
@@ -17,8 +22,16 @@ exports.registerCompany = async (req, res) => {
       industry
     } = req.body;
 
+    console.log('✓ Request data received:', {
+      companyName,
+      slug,
+      adminEmail,
+      hasPassword: !!adminPassword
+    });
+
     // Validate input
     if (!companyName || !slug || !adminEmail || !adminPassword) {
+      console.warn('⚠️ Missing required fields');
       return res.status(400).json({
         success: false,
         message: 'Missing required fields: companyName, slug, adminEmail, adminPassword'
@@ -44,30 +57,36 @@ exports.registerCompany = async (req, res) => {
     }
 
     // Check if slug already exists
+    console.log('🔍 Checking if slug exists:', slug.toLowerCase());
     const existingCompany = await dbGet(
       'SELECT id FROM companies WHERE slug = $1',
       [slug.toLowerCase()]
     );
 
     if (existingCompany) {
+      console.warn('⚠️ Slug already taken:', slug);
       return res.status(400).json({
         success: false,
         message: 'Company slug already taken. Please choose a different slug.'
       });
     }
+    console.log('✓ Slug available');
 
     // Check if admin email already exists
+    console.log('🔍 Checking if email exists:', adminEmail);
     const existingUser = await dbGet(
       'SELECT id FROM users WHERE email = $1',
       [adminEmail]
     );
 
     if (existingUser) {
+      console.warn('⚠️ Email already exists:', adminEmail);
       return res.status(400).json({
         success: false,
         message: 'Email already registered. Please use a different email.'
       });
     }
+    console.log('✓ Email available');
 
     // Validate password strength
     if (adminPassword.length < 6) {
@@ -182,11 +201,19 @@ exports.registerCompany = async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Company registration error:', err);
+    console.error('❌ CRITICAL ERROR in company registration:', {
+      message: err.message,
+      code: err.code,
+      stack: err.stack,
+      details: err.details,
+      hint: err.hint
+    });
+    
     res.status(500).json({
       success: false,
       message: 'Server error during registration',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      details: process.env.NODE_ENV === 'development' ? err : undefined
     });
   }
 };
