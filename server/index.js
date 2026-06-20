@@ -52,6 +52,10 @@ let dbConnected = false;
 logger.info('Database initialization scheduled');
 
 const app = express();
+
+// Trust proxy for Render deployment (fixes express-rate-limit X-Forwarded-For warning)
+app.set('trust proxy', true);
+
 const server = http.createServer(app);
 
 // WebSocket configuration

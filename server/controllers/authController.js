@@ -144,7 +144,7 @@ exports.login = async (req, res) => {
 
     // Update last login time
     dbRun(
-      'UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1',
+      'UPDATE users SET last_login_at = NOW() WHERE id = $1',
       [user.id]
     ).catch(err => logger.warn('Failed to update lastLoginAt', { userId: user.id, error: err.message }));
 

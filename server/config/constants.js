@@ -55,6 +55,7 @@ module.exports = {
   JWT: {
     SECRET: process.env.JWT_SECRET,
     EXPIRY: '24h',
+    ACCESS_TOKEN_EXPIRY: '15m',
     REFRESH_EXPIRY: '7d',
   },
   

@@ -96,47 +96,42 @@ exports.registerCompany = async (req, res) => {
       });
     }
 
-    // Create company
-    console.log('Creating company with data:', {
-      companyName,
-      slug: slug.toLowerCase(),
-      email: email || adminEmail,
-      phone: phone || null,
-      address: address || null,
-      industry: industry || 'General'
-    });
-
+    // Create company - use direct Supabase insert
+    console.log('🔍 Creating company with Supabase direct insert');
+    
     let company;
     try {
-      const result = await dbRun(
-        `INSERT INTO companies (name, slug, email, phone, address, industry, subscription_tier, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING id, name, slug, email, logo_url, primary_color, created_at`,
-        [
-          companyName,
-          slug.toLowerCase(),
-          email || adminEmail,
-          phone || null,
-          address || null,
-          industry || 'General',
-          'FREE',
-          true
-        ]
-      );
-      
-      if (result && result.rows && result.rows.length > 0) {
-        company = result.rows[0];
-        console.log('✅ Company created successfully:', company.id);
-      } else {
-        console.error('❌ Company creation returned no rows');
+      const { data, error } = await require('../config/supabase').supabase
+        .from('companies')
+        .insert([{
+          name: companyName,
+          slug: slug.toLowerCase(),
+          email: email || adminEmail,
+          phone: phone || null,
+          address: address || null,
+          industry: industry || 'General',
+          subscription_tier: 'FREE',
+          is_active: true
+        }])
+        .select();
+
+      if (error) {
+        console.error('❌ Supabase insert error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('❌ No data returned from insert');
         throw new Error('Company creation returned no data');
       }
+
+      company = data[0];
+      console.log('✅ Company created:', company.id);
     } catch (err) {
-      console.error('❌ Company creation error:', err);
+      console.error('❌ Company creation failed:', err.message);
       return res.status(500).json({
         success: false,
-        message: 'Failed to create company: ' + err.message,
-        error: process.env.NODE_ENV === 'development' ? err : undefined
+        message: 'Failed to create company: ' + err.message
       });
     }
 
@@ -144,37 +139,39 @@ exports.registerCompany = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
-    // Create admin user
-    console.log('Creating admin user for company:', company.id);
+    // Create admin user - use direct Supabase insert
+    console.log('🔍 Creating admin user with Supabase direct insert');
     let user;
     try {
-      const result = await dbRun(
-        `INSERT INTO users (email, password, name, role, company_id, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, email, name, role, company_id`,
-        [
-          adminEmail,
-          hashedPassword,
-          adminEmail.split('@')[0], // Use email prefix as default name
-          'admin',
-          company.id,
-          true
-        ]
-      );
-      
-      if (result && result.rows && result.rows.length > 0) {
-        user = result.rows[0];
-        console.log('✅ Admin user created successfully:', user.id);
-      } else {
-        console.error('❌ User creation returned no rows');
+      const { data, error } = await require('../config/supabase').supabase
+        .from('users')
+        .insert([{
+          email: adminEmail,
+          password: hashedPassword,
+          name: adminEmail.split('@')[0],
+          role: 'admin',
+          company_id: company.id,
+          is_active: true
+        }])
+        .select();
+
+      if (error) {
+        console.error('❌ Supabase user insert error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.error('❌ No data returned from user insert');
         throw new Error('User creation returned no data');
       }
+
+      user = data[0];
+      console.log('✅ Admin user created:', user.id);
     } catch (err) {
-      console.error('❌ Admin user creation error:', err);
+      console.error('❌ Admin user creation failed:', err.message);
       return res.status(500).json({
         success: false,
-        message: 'Company created but admin user creation failed: ' + err.message,
-        error: process.env.NODE_ENV === 'development' ? err : undefined
+        message: 'Company created but admin user creation failed: ' + err.message
       });
     }
 
