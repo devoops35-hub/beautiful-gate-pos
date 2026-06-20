@@ -89,16 +89,40 @@ const dbRun = async (sql, params = []) => {
     }
 
     if (sql.toUpperCase().includes('INSERT')) {
-      // Parse INSERT statement
-      const colMatch = sql.match(/\(([^)]+)\)\s*VALUES/i);
-      const columns = colMatch ? colMatch[1].split(',').map(c => c.trim()) : [];
+      // Parse INSERT statement - handle both single and multi-line SQL
+      // Match pattern: INSERT INTO table_name (col1, col2, ...) VALUES ($1, $2, ...)
+      const colMatch = sql.match(/INSERT\s+INTO\s+\w+\s*\(([^)]+)\)\s*VALUES/i);
+      
+      if (!colMatch || !colMatch[1]) {
+        console.error('Failed to parse columns from INSERT statement:', sql);
+        throw new Error(`Could not parse column names from INSERT statement`);
+      }
+
+      const columns = colMatch[1]
+        .split(',')
+        .map(c => c.trim())
+        .filter(c => c.length > 0);
+
+      if (columns.length === 0) {
+        throw new Error('No columns found in INSERT statement');
+      }
+
+      if (params.length !== columns.length) {
+        console.error('Parameter count mismatch:', {
+          columns: columns,
+          paramCount: params.length,
+          columnCount: columns.length,
+          params: params
+        });
+        throw new Error(`Parameter count (${params.length}) does not match column count (${columns.length})`);
+      }
 
       const insertData = {};
       columns.forEach((col, idx) => {
         insertData[col] = params[idx];
       });
 
-      console.log('Inserting into', table, 'with data:', Object.keys(insertData));
+      console.log('Inserting into', table, 'with data:', Object.keys(insertData), 'values:', insertData);
 
       const { data, error } = await supabase
         .from(table)
@@ -106,7 +130,13 @@ const dbRun = async (sql, params = []) => {
         .select();
 
       if (error) {
-        console.error('Supabase INSERT error:', error);
+        console.error('Supabase INSERT error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          insertData
+        });
         throw error;
       }
       

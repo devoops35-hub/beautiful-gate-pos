@@ -78,27 +78,46 @@ exports.registerCompany = async (req, res) => {
     }
 
     // Create company
-    const company = await dbGet(
-      `INSERT INTO companies (name, slug, email, phone, address, industry, subscription_tier, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, name, slug, email, logo_url, primary_color, created_at`,
-      [
-        companyName,
-        slug.toLowerCase(),
-        email || adminEmail,
-        phone || null,
-        address || null,
-        industry || 'General',
-        'FREE',
-        true
-      ]
-    );
+    console.log('Creating company with data:', {
+      companyName,
+      slug: slug.toLowerCase(),
+      email: email || adminEmail,
+      phone: phone || null,
+      address: address || null,
+      industry: industry || 'General'
+    });
 
-    if (!company) {
-      console.error('❌ Company creation returned null');
+    let company;
+    try {
+      const result = await dbRun(
+        `INSERT INTO companies (name, slug, email, phone, address, industry, subscription_tier, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id, name, slug, email, logo_url, primary_color, created_at`,
+        [
+          companyName,
+          slug.toLowerCase(),
+          email || adminEmail,
+          phone || null,
+          address || null,
+          industry || 'General',
+          'FREE',
+          true
+        ]
+      );
+      
+      if (result && result.rows && result.rows.length > 0) {
+        company = result.rows[0];
+        console.log('✅ Company created successfully:', company.id);
+      } else {
+        console.error('❌ Company creation returned no rows');
+        throw new Error('Company creation returned no data');
+      }
+    } catch (err) {
+      console.error('❌ Company creation error:', err);
       return res.status(500).json({
         success: false,
-        message: 'Failed to create company'
+        message: 'Failed to create company: ' + err.message,
+        error: process.env.NODE_ENV === 'development' ? err : undefined
       });
     }
 
@@ -107,24 +126,36 @@ exports.registerCompany = async (req, res) => {
     const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
     // Create admin user
-    const user = await dbGet(
-      `INSERT INTO users (email, password, name, role, company_id, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, email, name, role, company_id`,
-      [
-        adminEmail,
-        hashedPassword,
-        adminEmail.split('@')[0], // Use email prefix as default name
-        'admin',
-        company.id,
-        true
-      ]
-    );
-
-    if (!user) {
+    console.log('Creating admin user for company:', company.id);
+    let user;
+    try {
+      const result = await dbRun(
+        `INSERT INTO users (email, password, name, role, company_id, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, email, name, role, company_id`,
+        [
+          adminEmail,
+          hashedPassword,
+          adminEmail.split('@')[0], // Use email prefix as default name
+          'admin',
+          company.id,
+          true
+        ]
+      );
+      
+      if (result && result.rows && result.rows.length > 0) {
+        user = result.rows[0];
+        console.log('✅ Admin user created successfully:', user.id);
+      } else {
+        console.error('❌ User creation returned no rows');
+        throw new Error('User creation returned no data');
+      }
+    } catch (err) {
+      console.error('❌ Admin user creation error:', err);
       return res.status(500).json({
         success: false,
-        message: 'Failed to create admin user'
+        message: 'Company created but admin user creation failed: ' + err.message,
+        error: process.env.NODE_ENV === 'development' ? err : undefined
       });
     }
 
