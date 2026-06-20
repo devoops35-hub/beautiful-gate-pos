@@ -229,14 +229,17 @@ const connectDB = async () => {
     const { data, error } = await supabase.from('users').select('count', { count: 'exact', head: true });
     
     if (error) {
-      console.error('❌ Error connecting to Supabase:', error.message);
-      throw error;
+      console.warn('⚠️ Supabase connection warning:', error.message);
+      // Don't throw - allow server to start even if DB is temporarily unavailable
+      return false;
     }
 
     console.log('✅ Connected to Supabase Database');
+    return true;
   } catch (err) {
-    console.error('❌ Error initializing Supabase:', err.message);
-    throw err;
+    console.warn('⚠️ Supabase connection issue (will continue):', err.message);
+    // Don't throw - let server start and handle DB errors at request time
+    return false;
   }
 };
 

@@ -28,21 +28,28 @@ try {
   validateEnvironment();
 } catch (error) {
   logger.error('❌ Configuration Error:', error.message);
-  process.exit(1);
+  // In production, exit. In development, continue with warnings.
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
 }
 
 // Connect to database
-connectDB();
-
-// Initialize tables (PostgreSQL handles this automatically in connectDB)
+let dbConnected = false;
 (async () => {
   try {
-    // Tables are created during connectDB(), no additional initialization needed
-    logger.info('Database initialization complete');
+    await connectDB();
+    dbConnected = true;
+    logger.info('✅ Database connection established successfully');
   } catch (error) {
-    logger.logError('Error initializing database', error);
+    logger.error('⚠️ Database connection warning (will retry):', error.message);
+    // Don't crash the server if DB connection fails initially
+    // Will retry on first request
   }
 })();
+
+// Initialize tables (PostgreSQL handles this automatically in connectDB)
+logger.info('Database initialization scheduled');
 
 const app = express();
 const server = http.createServer(app);

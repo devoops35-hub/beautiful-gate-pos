@@ -4,10 +4,15 @@ const path = require('path');
 const fs = require('fs');
 const { NODE_ENV } = require('./constants');
 
-// Ensure logs directory exists
+// Ensure logs directory exists - handle permission errors gracefully
 const logsDir = path.join(__dirname, '../logs');
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+try {
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('⚠️ Could not create logs directory:', err.message);
+  // Continue anyway - will just log to console
 }
 
 /**
@@ -51,64 +56,101 @@ const consoleTransport = new winston.transports.Console({
 /**
  * File transport for all logs
  */
-const fileTransport = new DailyRotateFile({
-  filename: path.join(logsDir, 'app-%DATE%.log'),
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxDays: '14d',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.json()
-  ),
-});
+let fileTransport;
+try {
+  fileTransport = new DailyRotateFile({
+    filename: path.join(logsDir, 'app-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxDays: '14d',
+    format: winston.format.combine(
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format.json()
+    ),
+  });
+} catch (err) {
+  console.warn('⚠️ Could not initialize file transport:', err.message);
+  fileTransport = null;
+}
 
 /**
  * Error file transport for errors only
  */
-const errorFileTransport = new DailyRotateFile({
-  level: 'error',
-  filename: path.join(logsDir, 'error-%DATE%.log'),
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxDays: '14d',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.errors({ stack: true }),
-    winston.format.json()
-  ),
-});
+let errorFileTransport;
+try {
+  errorFileTransport = new DailyRotateFile({
+    level: 'error',
+    filename: path.join(logsDir, 'error-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxDays: '14d',
+    format: winston.format.combine(
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format.errors({ stack: true }),
+      winston.format.json()
+    ),
+  });
+} catch (err) {
+  console.warn('⚠️ Could not initialize error file transport:', err.message);
+  errorFileTransport = null;
+}
 
 /**
  * Request/Response file transport
  */
-const requestFileTransport = new DailyRotateFile({
-  filename: path.join(logsDir, 'requests-%DATE%.log'),
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxDays: '7d',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.json()
-  ),
-});
+let requestFileTransport;
+try {
+  requestFileTransport = new DailyRotateFile({
+    filename: path.join(logsDir, 'requests-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxDays: '7d',
+    format: winston.format.combine(
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format.json()
+    ),
+  });
+} catch (err) {
+  console.warn('⚠️ Could not initialize request file transport:', err.message);
+  requestFileTransport = null;
+}
 
 /**
  * Audit trail file transport
  */
-const auditFileTransport = new DailyRotateFile({
-  filename: path.join(logsDir, 'audit-%DATE%.log'),
-  datePattern: 'YYYY-MM-DD',
-  maxSize: '20m',
-  maxDays: '30d',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.json()
-  ),
-});
+let auditFileTransport;
+try {
+  auditFileTransport = new DailyRotateFile({
+    filename: path.join(logsDir, 'audit-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxDays: '30d',
+    format: winston.format.combine(
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+      winston.format.json()
+    ),
+  });
+} catch (err) {
+  console.warn('⚠️ Could not initialize audit file transport:', err.message);
+  auditFileTransport = null;
+}
 
 /**
  * Create main logger
  */
+let exceptionHandler;
+try {
+  exceptionHandler = new DailyRotateFile({
+    filename: path.join(logsDir, 'exceptions-%DATE%.log'),
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxDays: '14d',
+  });
+} catch (err) {
+  console.warn('⚠️ Could not initialize exception handler:', err.message);
+  exceptionHandler = null;
+}
+
 const logger = winston.createLogger({
   level: NODE_ENV === 'production' ? 'info' : 'debug',
   levels,
@@ -117,14 +159,7 @@ const logger = winston.createLogger({
     fileTransport,
     errorFileTransport,
   ].filter(Boolean),
-  exceptionHandlers: [
-    new DailyRotateFile({
-      filename: path.join(logsDir, 'exceptions-%DATE%.log'),
-      datePattern: 'YYYY-MM-DD',
-      maxSize: '20m',
-      maxDays: '14d',
-    }),
-  ],
+  exceptionHandlers: exceptionHandler ? [exceptionHandler] : [],
 });
 
 /**

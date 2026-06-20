@@ -18,13 +18,23 @@ const validateEnvironment = () => {
   const missing = requiredEnvVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}. ` +
-      `Please check your .env file.`
-    );
+    const NODE_ENV = process.env.NODE_ENV || 'development';
+    // In production, require all vars
+    if (NODE_ENV === 'production') {
+      throw new Error(
+        `Missing required environment variables: ${missing.join(', ')}. ` +
+        `Please check your .env file.`
+      );
+    } else {
+      // In development, just warn
+      console.warn(
+        `⚠️ Warning: Missing environment variables: ${missing.join(', ')}. ` +
+        `Some features may not work correctly.`
+      );
+    }
   }
 
-  // Validate JWT_SECRET length
+  // Validate JWT_SECRET length if present
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 16) {
     throw new Error(
       'JWT_SECRET must be at least 16 characters long. ' +
