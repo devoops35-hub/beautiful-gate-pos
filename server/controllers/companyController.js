@@ -19,7 +19,9 @@ exports.registerCompany = async (req, res) => {
       phone,
       email,
       address,
-      industry
+      industry,
+      logoUrl,
+      primaryColor
     } = req.body;
 
     console.log('✓ Request data received:', {
@@ -110,6 +112,8 @@ exports.registerCompany = async (req, res) => {
           phone: phone || null,
           address: address || null,
           industry: industry || 'General',
+          logo_url: logoUrl || null,
+          primary_color: primaryColor || '#1e40af',
           subscription_tier: 'FREE',
           is_active: true
         }])
@@ -184,8 +188,9 @@ exports.registerCompany = async (req, res) => {
           name: company.name,
           slug: company.slug,
           email: company.email,
-          logo: company.logo_url,
-          primaryColor: company.primary_color,
+          logo_url: company.logo_url,
+          primary_color: company.primary_color,
+          industry: company.industry,
           createdAt: company.created_at
         },
         user: {

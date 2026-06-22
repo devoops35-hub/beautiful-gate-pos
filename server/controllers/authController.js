@@ -100,7 +100,7 @@ exports.login = async (req, res) => {
 
     // Find user with company info
     const user = await dbGet(
-      `SELECT u.*, c.id as company_id, c.name as company_name, c.slug as company_slug, c.logo_url, c.primary_color 
+      `SELECT u.*, c.id as company_id, c.name as company_name, c.slug as company_slug, c.logo_url, c.primary_color, c.industry 
        FROM users u 
        LEFT JOIN companies c ON u.company_id = c.id 
        WHERE u.email = $1`,
@@ -203,8 +203,9 @@ exports.login = async (req, res) => {
         id: user.company_id,
         name: user.company_name,
         slug: user.company_slug,
-        logo: user.logo_url,
-        primaryColor: user.primary_color
+        logo_url: user.logo_url,
+        primary_color: user.primary_color,
+        industry: user.industry
       } : null,
     });
   } catch (err) {
