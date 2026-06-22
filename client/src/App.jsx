@@ -13,7 +13,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 function AppContent() {
   const location = useLocation();
   const showSidebar = location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/register-company';
-  const showHeader = location.pathname !== '/login' && location.pathname !== '/register' && location.pathname !== '/register-company';
+  // Hide header on authenticated pages - sidebar will be the only navigation
+  const showHeader = false;
 
   return (
     <div className="App bg-gray-100 min-h-screen flex flex-col">

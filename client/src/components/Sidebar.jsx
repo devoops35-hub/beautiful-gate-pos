@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTachometerAlt, faShoppingCart, faBox, faSignOutAlt, faBars, faTimes, faUser, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 
 const Sidebar = () => {
-  const { isAuthenticated, logout, user } = useContext(AuthContext);
+  const { isAuthenticated, logout, user, company } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -43,6 +43,12 @@ const Sidebar = () => {
     return 'U';
   };
 
+  // Use company branding if available, otherwise use defaults
+  const companyName = company?.name || 'Beautiful Gate';
+  const companyDescription = company?.industry ? `${company.industry} Business` : 'Stationery & Printing Hub';
+  const companyLogo = company?.logo_url || '/beautiful-gate-logo.png';
+  const primaryColor = company?.primary_color || '#1e40af'; // blue-800
+
   return (
     <>
       {/* Mobile toggle button */}
@@ -68,30 +74,30 @@ const Sidebar = () => {
         } lg:sticky lg:top-0 lg:translate-x-0 ${isCollapsed ? 'w-20' : 'w-64'}`}
       >
         {/* Sidebar header */}
-        <div className={`p-4 border-b border-gray-200 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+        <div className={`p-4 border-b border-gray-200 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'}`} style={{ borderBottomColor: primaryColor, borderBottomWidth: '2px' }}>
           {!isCollapsed && (
             <div className="flex items-center gap-3">
               <img 
-                src="/beautiful-gate-logo.png" 
-                alt="Beautiful Gate Logo" 
-                className="h-12 w-12"
+                src={companyLogo} 
+                alt={`${companyName} Logo`} 
+                className="h-12 w-12 object-contain"
                 onError={(e) => {
-                  e.target.style.display = 'none';
+                  e.target.src = '/beautiful-gate-logo.png';
                 }}
               />
               <div>
-                <h1 className="text-lg font-bold text-blue-800">Beautiful Gate</h1>
-                <p className="text-xs text-gray-600">Stationery & Printing Hub</p>
+                <h1 className="text-lg font-bold" style={{ color: primaryColor }}>{companyName}</h1>
+                <p className="text-xs text-gray-600">{companyDescription}</p>
               </div>
             </div>
           )}
           {isCollapsed && (
             <img 
-              src="/beautiful-gate-logo.png" 
-              alt="BG" 
-              className="h-10 w-10"
+              src={companyLogo} 
+              alt={companyName.substring(0, 2)} 
+              className="h-10 w-10 object-contain"
               onError={(e) => {
-                e.target.style.display = 'none';
+                e.target.src = '/beautiful-gate-logo.png';
               }}
             />
           )}
@@ -113,9 +119,10 @@ const Sidebar = () => {
                   onClick={() => setIsOpen(false)}
                   className={`flex items-center px-4 py-3 text-base font-medium transition-colors ${
                     location.pathname === item.path
-                      ? 'bg-blue-500 text-white'
+                      ? 'text-white'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
+                  style={location.pathname === item.path ? { backgroundColor: primaryColor } : {}}
                 >
                   <FontAwesomeIcon icon={item.icon} className={`${isCollapsed ? 'mx-auto' : 'mr-3'}`} />
                   {!isCollapsed && <span>{item.name}</span>}
@@ -130,7 +137,7 @@ const Sidebar = () => {
           <div className={`p-4 border-t border-gray-200 ${isCollapsed ? 'text-center' : ''}`}>
             {!isCollapsed && (
               <div className="flex items-center mb-4">
-                <div className="bg-blue-500 text-white rounded-full p-2 mr-3 flex items-center justify-center w-10 h-10">
+                <div className="text-white rounded-full p-2 mr-3 flex items-center justify-center w-10 h-10" style={{ backgroundColor: primaryColor }}>
                   <span className="font-medium">{getUserInitials()}</span>
                 </div>
                 <div>
