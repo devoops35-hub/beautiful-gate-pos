@@ -98,26 +98,43 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.validatedData;
 
-    // Find user with company info
-    const user = await dbGet(
-      `SELECT u.*, 
-              c.id as company_id, 
-              c.name as company_name, 
-              c.slug as company_slug, 
-              c.logo_url as company_logo_url, 
-              c.primary_color as company_primary_color, 
-              c.industry as company_industry 
-       FROM users u 
-       LEFT JOIN companies c ON u.company_id = c.id 
-       WHERE u.email = $1`,
-      [email]
-    );
+    // Find user with company info - use direct Supabase query with proper JOIN
+    const { data: users, error } = await require('../config/supabase').supabase
+      .from('users')
+      .select(`
+        *,
+        companies:company_id (
+          id,
+          name,
+          slug,
+          logo_url,
+          primary_color,
+          industry
+        )
+      `)
+      .eq('email', email)
+      .limit(1);
+
+    if (error) {
+      console.error('Login query error:', error);
+      throw error;
+    }
+
+    const user = users?.[0];
+    
     if (!user) {
       return res.status(401).json({
         success: false,
         message: ERROR_MESSAGES.INVALID_CREDENTIALS,
       });
     }
+
+    console.log('✅ User fetched with company:', {
+      userId: user.id,
+      email: user.email,
+      hasCompanies: !!user.companies,
+      companies: user.companies
+    });
 
     // Check if user is active
     if (user.is_active === false) {
@@ -155,12 +172,14 @@ exports.login = async (req, res) => {
     ).catch(err => logger.warn('Failed to update lastLoginAt', { userId: user.id, error: err.message }));
 
     // Generate tokens with company info
+    const companyData = user.companies || null;
+    
     const tokenData = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      companyId: user.company_id,
-      companySlug: user.company_slug
+      companyId: companyData?.id || user.company_id,
+      companySlug: companyData?.slug
     };
     
     const accessToken = jwt.sign(
@@ -182,7 +201,7 @@ exports.login = async (req, res) => {
     // Log audit event
     await logAuditEvent(user.id, 'LOGIN', 'user', user.id, {
       email,
-      companyId: user.company_id,
+      companyId: companyData?.id || user.company_id,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
@@ -190,22 +209,22 @@ exports.login = async (req, res) => {
     logger.info('User logged in', {
       userId: user.id,
       email,
-      companyId: user.company_id,
-      hasCompanyData: !!user.company_name,
-      companyName: user.company_name,
+      companyId: companyData?.id || user.company_id,
+      hasCompanyData: !!companyData,
+      companyName: companyData?.name,
       timestamp: new Date().toISOString(),
     });
 
-    const companyData = user.company_id ? {
-      id: user.company_id,
-      name: user.company_name,
-      slug: user.company_slug,
-      logo_url: user.company_logo_url,
-      primary_color: user.company_primary_color,
-      industry: user.company_industry
+    const finalCompanyData = companyData ? {
+      id: companyData.id,
+      name: companyData.name,
+      slug: companyData.slug,
+      logo_url: companyData.logo_url,
+      primary_color: companyData.primary_color,
+      industry: companyData.industry
     } : null;
 
-    console.log('🔍 Login - Company data being sent:', companyData);
+    console.log('🔍 Login - Company data being sent:', finalCompanyData);
 
     res.status(200).json({
       success: true,
@@ -218,7 +237,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
       },
-      company: companyData,
+      company: finalCompanyData,
     });
   } catch (err) {
     logger.logError('Login error', err);
