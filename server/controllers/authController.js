@@ -98,43 +98,22 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.validatedData;
 
-    // Find user with company info - use direct Supabase query with proper JOIN
-    const { data: users, error } = await require('../config/supabase').supabase
+    // Find user with company info using direct Supabase query
+    // Note: The dbGet wrapper doesn't support JOINs properly, so we query separately
+    const { data: users, error: userError } = await require('../config/supabase').supabase
       .from('users')
-      .select(`
-        *,
-        companies:company_id (
-          id,
-          name,
-          slug,
-          logo_url,
-          primary_color,
-          industry
-        )
-      `)
+      .select('*')
       .eq('email', email)
-      .limit(1);
+      .single();
 
-    if (error) {
-      console.error('Login query error:', error);
-      throw error;
-    }
-
-    const user = users?.[0];
-    
-    if (!user) {
+    if (userError || !users) {
       return res.status(401).json({
         success: false,
         message: ERROR_MESSAGES.INVALID_CREDENTIALS,
       });
     }
 
-    console.log('✅ User fetched with company:', {
-      userId: user.id,
-      email: user.email,
-      hasCompanies: !!user.companies,
-      companies: user.companies
-    });
+    const user = users;
 
     // Check if user is active
     if (user.is_active === false) {
@@ -165,6 +144,20 @@ exports.login = async (req, res) => {
       });
     }
 
+    // If user has company_id, fetch company details separately
+    let company = null;
+    if (user.company_id) {
+      const { data: companyData, error: companyError } = await require('../config/supabase').supabase
+        .from('companies')
+        .select('id, name, slug, logo_url, primary_color, industry')
+        .eq('id', user.company_id)
+        .single();
+
+      if (!companyError && companyData) {
+        company = companyData;
+      }
+    }
+
     // Update last login time
     dbRun(
       'UPDATE users SET last_login_at = NOW() WHERE id = $1',
@@ -172,14 +165,12 @@ exports.login = async (req, res) => {
     ).catch(err => logger.warn('Failed to update lastLoginAt', { userId: user.id, error: err.message }));
 
     // Generate tokens with company info
-    const companyData = user.companies || null;
-    
     const tokenData = {
       userId: user.id,
       email: user.email,
       role: user.role,
-      companyId: companyData?.id || user.company_id,
-      companySlug: companyData?.slug
+      companyId: user.company_id,
+      companySlug: company?.slug
     };
     
     const accessToken = jwt.sign(
@@ -201,7 +192,7 @@ exports.login = async (req, res) => {
     // Log audit event
     await logAuditEvent(user.id, 'LOGIN', 'user', user.id, {
       email,
-      companyId: companyData?.id || user.company_id,
+      companyId: user.company_id,
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });
@@ -209,22 +200,22 @@ exports.login = async (req, res) => {
     logger.info('User logged in', {
       userId: user.id,
       email,
-      companyId: companyData?.id || user.company_id,
-      hasCompanyData: !!companyData,
-      companyName: companyData?.name,
+      companyId: user.company_id,
+      hasCompanyData: !!company,
+      companyName: company?.name,
       timestamp: new Date().toISOString(),
     });
 
-    const finalCompanyData = companyData ? {
-      id: companyData.id,
-      name: companyData.name,
-      slug: companyData.slug,
-      logo_url: companyData.logo_url,
-      primary_color: companyData.primary_color,
-      industry: companyData.industry
+    const companyData = company ? {
+      id: company.id,
+      name: company.name,
+      slug: company.slug,
+      logo_url: company.logo_url,
+      primary_color: company.primary_color,
+      industry: company.industry
     } : null;
 
-    console.log('🔍 Login - Company data being sent:', finalCompanyData);
+    console.log('🔍 Login - Company data being sent:', companyData);
 
     res.status(200).json({
       success: true,
@@ -237,7 +228,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
       },
-      company: finalCompanyData,
+      company: companyData,
     });
   } catch (err) {
     logger.logError('Login error', err);
