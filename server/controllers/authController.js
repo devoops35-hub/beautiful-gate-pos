@@ -100,7 +100,13 @@ exports.login = async (req, res) => {
 
     // Find user with company info
     const user = await dbGet(
-      `SELECT u.*, c.id as company_id, c.name as company_name, c.slug as company_slug, c.logo_url, c.primary_color, c.industry 
+      `SELECT u.*, 
+              c.id as company_id, 
+              c.name as company_name, 
+              c.slug as company_slug, 
+              c.logo_url as company_logo_url, 
+              c.primary_color as company_primary_color, 
+              c.industry as company_industry 
        FROM users u 
        LEFT JOIN companies c ON u.company_id = c.id 
        WHERE u.email = $1`,
@@ -185,8 +191,21 @@ exports.login = async (req, res) => {
       userId: user.id,
       email,
       companyId: user.company_id,
+      hasCompanyData: !!user.company_name,
+      companyName: user.company_name,
       timestamp: new Date().toISOString(),
     });
+
+    const companyData = user.company_id ? {
+      id: user.company_id,
+      name: user.company_name,
+      slug: user.company_slug,
+      logo_url: user.company_logo_url,
+      primary_color: user.company_primary_color,
+      industry: user.company_industry
+    } : null;
+
+    console.log('🔍 Login - Company data being sent:', companyData);
 
     res.status(200).json({
       success: true,
@@ -199,14 +218,7 @@ exports.login = async (req, res) => {
         email: user.email,
         role: user.role,
       },
-      company: user.company_id ? {
-        id: user.company_id,
-        name: user.company_name,
-        slug: user.company_slug,
-        logo_url: user.logo_url,
-        primary_color: user.primary_color,
-        industry: user.industry
-      } : null,
+      company: companyData,
     });
   } catch (err) {
     logger.logError('Login error', err);
