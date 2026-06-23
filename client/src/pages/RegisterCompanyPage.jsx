@@ -19,6 +19,7 @@ const RegisterCompanyPage = () => {
     phone: '',
     address: '',
     industry: '',
+    customIndustry: '', // For "Other" option
     logoUrl: '',
     primaryColor: '#1e40af',
 
@@ -29,6 +30,7 @@ const RegisterCompanyPage = () => {
   });
 
   const [logoPreview, setLogoPreview] = useState(null);
+  const [showCustomIndustry, setShowCustomIndustry] = useState(false);
 
   const [errors, setErrors] = useState({});
 
@@ -53,6 +55,21 @@ const RegisterCompanyPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Handle industry selection
+    if (name === 'industry') {
+      if (value === 'Other') {
+        setShowCustomIndustry(true);
+      } else {
+        setShowCustomIndustry(false);
+        setFormData({
+          ...formData,
+          industry: value,
+          customIndustry: '',
+        });
+      }
+    }
+    
     setFormData({
       ...formData,
       [name]: value,
@@ -112,6 +129,11 @@ const RegisterCompanyPage = () => {
 
     if (formData.phone && !/^[\d+\-\s()]+$/.test(formData.phone)) {
       newErrors.phone = 'Invalid phone format';
+    }
+
+    // Validate custom industry if "Other" is selected
+    if (formData.industry === 'Other' && !formData.customIndustry.trim()) {
+      newErrors.customIndustry = 'Please specify your industry';
     }
 
     if (!formData.primaryColor) {
@@ -176,7 +198,7 @@ const RegisterCompanyPage = () => {
         email: formData.email || null,
         phone: formData.phone || null,
         address: formData.address || null,
-        industry: formData.industry || null,
+        industry: formData.industry === 'Other' ? formData.customIndustry : formData.industry || null,
         logoUrl: formData.logoUrl || null,
         primaryColor: formData.primaryColor,
       });
@@ -340,6 +362,23 @@ const RegisterCompanyPage = () => {
                     <option value="Technology">Technology</option>
                     <option value="Other">Other</option>
                   </select>
+                  
+                  {/* Custom Industry Input - Shows when "Other" is selected */}
+                  {showCustomIndustry && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        name="customIndustry"
+                        value={formData.customIndustry}
+                        onChange={handleInputChange}
+                        placeholder="Please specify your industry"
+                        className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition focus:border-blue-500 bg-blue-50"
+                      />
+                      {errors.customIndustry && (
+                        <p className="text-red-600 text-sm mt-1 font-medium">{errors.customIndustry}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* DIVIDER */}
