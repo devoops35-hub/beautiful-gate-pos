@@ -70,12 +70,18 @@ export const AuthProvider = ({ children }) => {
   const login = async (formData) => {
     try {
       const res = await axios.post(`${API_URL}/api/auth/login`, formData);
+      console.log('Login response:', res.data);
+      console.log('Company data from login:', res.data.company);
+      
       localStorage.setItem('token', res.data.accessToken);
       localStorage.setItem('refreshToken', res.data.refreshToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       if (res.data.company) {
         localStorage.setItem('company', JSON.stringify(res.data.company));
         setCompany(res.data.company);
+        console.log('Company data stored in state and localStorage');
+      } else {
+        console.warn('No company data in login response!');
       }
       setToken(res.data.accessToken);
       setRefreshToken(res.data.refreshToken);

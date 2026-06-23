@@ -49,6 +49,16 @@ const Sidebar = () => {
   const companyLogo = company?.logo_url || '/beautiful-gate-logo.png';
   const primaryColor = company?.primary_color || '#1e40af'; // blue-800
 
+  // Debug logging
+  console.log('Sidebar - Company data:', {
+    hasCompany: !!company,
+    companyName: company?.name,
+    companyId: company?.id,
+    logoUrl: company?.logo_url,
+    primaryColor: company?.primary_color,
+    fullCompany: company
+  });
+
   return (
     <>
       {/* Mobile toggle button */}
