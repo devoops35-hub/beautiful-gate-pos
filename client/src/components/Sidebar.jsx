@@ -49,15 +49,26 @@ const Sidebar = () => {
   const companyLogo = company?.logo_url || '/beautiful-gate-logo.png';
   const primaryColor = company?.primary_color || '#1e40af'; // blue-800
 
-  // Debug logging
-  console.log('Sidebar - Company data:', {
-    hasCompany: !!company,
-    companyName: company?.name,
-    companyId: company?.id,
-    logoUrl: company?.logo_url,
-    primaryColor: company?.primary_color,
-    fullCompany: company
-  });
+  // Debug logging - MORE VISIBLE
+  React.useEffect(() => {
+    console.log('========================================');
+    console.log('🔍 SIDEBAR DEBUG - Company State:');
+    console.log('  Company object:', company);
+    console.log('  Company name:', company?.name);
+    console.log('  Company ID:', company?.id);
+    console.log('  Logo URL:', company?.logo_url);
+    console.log('  Primary Color:', company?.primary_color);
+    console.log('  Industry:', company?.industry);
+    console.log('  Using fallback?', !company);
+    console.log('========================================');
+    
+    // Also check localStorage
+    const storedCompany = localStorage.getItem('company');
+    console.log('📦 LocalStorage company:', storedCompany);
+    if (storedCompany) {
+      console.log('📦 Parsed:', JSON.parse(storedCompany));
+    }
+  }, [company]);
 
   return (
     <>
